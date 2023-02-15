@@ -1,0 +1,110 @@
+//**********---------Project of ECE-083 -----***********
+//**********---------Home security system ---***********
+
+//****----submitted by :-
+
+//****--- Harsh Bhadani  - 12014525 
+//****--- Siddharth      - 12006050
+//****--- Nandini Singh  - 12016334
+//****--- Muloy Juior    - 12000067
+
+
+#include <WiFi.h>
+#include <WiFiClientSecure.h>    ///
+#include <UniversalTelegramBot.h>
+#include <ArduinoJson.h>
+
+// My Network credentials
+const char* ssid = "Hotspot";
+const char* password = "harsh0000";
+
+// Initialize Telegram BOT
+#define BOTtoken "5905158870:AAFWXVlkMfS4Eu_BafbLR0-h_phBVCapcCw"  // your Bot Token 
+
+#define CHAT_ID "1882834023"  // My telegram chat ID
+// Since telegram bots can be accessed from any mobile so i gave my chat id so that the bot can be accessed only from my device.
+
+WiFiClientSecure client;
+UniversalTelegramBot bot(BOTtoken, client);
+
+const int motionSensor1 = 27; // PIR Motion Sensor 1
+const int motionSensor2 = 26; // PIR Motion Sensor 2
+int buzzer = 25;              // Buzzer
+bool motionDetected1 = false;
+bool motionDetected2 = false;
+
+// Indicates when motion is detected from sensors
+
+void IRAM_ATTR detectsMovement1() 
+{ 
+  motionDetected1 = true;
+}
+void IRAM_ATTR detectsMovement2() 
+{
+  motionDetected2 = true;
+}
+
+
+
+void setup() 
+{
+  Serial.begin(115200);
+
+  // PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(motionSensor1, INPUT_PULLUP);
+  pinMode(motionSensor2, INPUT_PULLUP);
+  pinMode(buzzer, OUTPUT);
+  
+  // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
+  attachInterrupt(digitalPinToInterrupt(motionSensor1), detectsMovement1, RISING); // interrupt for sensor1
+  attachInterrupt(digitalPinToInterrupt(motionSensor2), detectsMovement2, RISING); // interrupt for sensor2
+
+  // Attempt to connect to Wifi network:
+  Serial.print("Connecting Wifi: ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  bot.sendMessage(CHAT_ID, "Bot started up", "");   // send message to bot after starting
+}
+
+
+
+void loop() 
+{
+
+  if(motionDetected1 || motionDetected2) // initiate buzzer if there is any motion detected
+  {
+    digitalWrite(buzzer, HIGH);
+    delay(4000);
+    digitalWrite(buzzer, LOW);
+  }
+  
+  if(motionDetected1)   // if motion is detected in sensor 1 then send notification to telegram
+  {
+    bot.sendMessage(CHAT_ID, "Motion detected in 1!!", "");
+    Serial.println("Motion Detected in 1"); 
+    motionDetected1 = false;
+  }
+  
+   if(motionDetected2) // if motion detected from sensor 2
+  {
+    bot.sendMessage(CHAT_ID, "Motion detected in 2!!", "");
+    Serial.println("Motion Detected in 2"); 
+    motionDetected2 = false;
+  }
+}
+
+//-------------------******************** -----THANK YOU-----******************-------------------------
